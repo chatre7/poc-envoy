@@ -1,0 +1,16 @@
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.32.13
+    command: ["/usr/local/bin/envoy", "-c", "/etc/envoy/envoy.yaml", "-l", "info"]
+    volumes: ["./envoy.yaml:/etc/envoy/envoy.yaml:ro"]
+    ports: ["8080:10000", "9901:9901"]
+    depends_on: [backend]
+    networks: [lab]
+  backend:
+    image: python:3.12.7-alpine
+    command: ["python", "/app/backend.py"]
+    volumes: ["./backend.py:/app/backend.py:ro"]
+    expose: ["8080"]
+    networks: [lab]
+networks:
+  lab: { driver: bridge }

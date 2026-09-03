@@ -1,0 +1,29 @@
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.32.13
+    command: ["/usr/local/bin/envoy", "-c", "/etc/envoy/envoy.yaml", "-l", "info"]
+    volumes: ["./envoy.yaml:/etc/envoy/envoy.yaml:ro"]
+    ports: ["8080:10000", "9901:9901"]
+    depends_on: [backend, jaeger]
+    networks: [lab]
+  backend:
+    image: hashicorp/http-echo:1.0
+    command: ["-listen=:8080", "-text=OBSERVABLE"]
+    expose: ["8080"]
+    networks: [lab]
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["9090:9090"]
+    depends_on: [envoy]
+    networks: [lab]
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: ":9411"
+    expose: ["9411"]
+    ports: ["16686:16686"]
+    networks: [lab]
+networks:
+  lab: { driver: bridge }
