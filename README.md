@@ -30,7 +30,7 @@ Repository นี้มีสองส่วน: POC เดิมแบบ `Ngin
 | 09 | [JWT + RBAC](use-cases/09-jwt-rbac/) | แยก authentication 401 จาก authorization 403 | สูง |
 | 10 | [Dynamic xDS](use-cases/10-dynamic-xds/) | เปลี่ยน RDS โดยไม่ restart และ reject config ผิด | สูง |
 | 11 | [Blue/Green Deployment UI](use-cases/11-blue-green-deployment-ui/) | Promote/Rollback ผ่าน Nginx และ Release Console | สูง |
-| 12 | [Production Blue/Green Stack](use-cases/12-production-blue-green-stack/) | Release Console พร้อม Prometheus, Grafana, Jaeger และ production safeguards | สูง |
+| 12 | [Production Blue/Green Stack](use-cases/12-production-blue-green-stack/) | Failover detection, Prometheus alerts, Alertmanager lifecycle, Grafana และ guarded traffic switch | สูง |
 
 ## วิธีรัน lab
 
@@ -67,6 +67,52 @@ pwsh -NoProfile -File ./scripts/validate.ps1 -Runtime
 ```
 
 ฝั่ง POSIX ใช้ `sh ./scripts/validate.sh` หรือเพิ่ม `--runtime`
+
+## Lab 12: Production Failover Monitoring
+
+Lab สุดท้ายรวมเส้นทาง production ไว้ใน Compose stack เดียว:
+
+```text
+Client :8080 -> Nginx -> Envoy -> Blue / Green backends
+                         |
+Release Controller metrics -> Prometheus -> Alertmanager
+                                  |              |
+                                  v              v
+                               Grafana     webhook audit
+Envoy traces -----------------> Jaeger
+```
+
+เริ่มระบบ:
+
+```powershell
+Set-Location use-cases/12-production-blue-green-stack
+./reset.ps1
+docker compose up -d
+```
+
+| Operator surface | URL |
+|---|---|
+| Release Console | http://127.0.0.1:8080/deployment/ |
+| Grafana | http://127.0.0.1:3000/d/envoy-production/envoy-production-and-failover |
+| Prometheus | http://127.0.0.1:9090 |
+| Alertmanager | http://127.0.0.1:9093 |
+| Jaeger | http://127.0.0.1:16686 |
+
+ทดลอง incident โดยหยุด active Blue:
+
+```powershell
+docker compose stop backend-v1
+```
+
+Release Console จะรายงาน `Failover Required`, Prometheus เปลี่ยน `ActiveReleaseUnhealthy` จาก Pending เป็น Firing และ Alertmanager ส่ง webhook เข้า controller จากนั้น operator จึงสั่ง `Fail over to Green` แบบ guarded switch ระบบไม่สลับ traffic อัตโนมัติจาก probe failure เพียงครั้งเดียว
+
+รัน drill เต็มซึ่งตรวจ `Pending -> Firing -> Resolved`, webhook, recovery, xDS rejection safety และ rollback:
+
+```powershell
+pwsh -NoProfile -File ./test.ps1
+```
+
+ทุก port bind ที่ `127.0.0.1`; webhook receiver ใช้ได้เฉพาะ Compose network และ public path `/deployment/api/alerts` ถูก Nginx ปิดไว้ รายละเอียด metrics และ alert ทั้งหมดอยู่ใน [คู่มือ Lab 12](use-cases/12-production-blue-green-stack/)
 
 ## POC เดิม: Nginx → Envoy
 
