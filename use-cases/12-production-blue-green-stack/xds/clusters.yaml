@@ -1,0 +1,60 @@
+version_info: "1"
+resources:
+  - "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: backend_v1
+    connect_timeout: 1s
+    type: STRICT_DNS
+    circuit_breakers:
+      thresholds:
+        - priority: DEFAULT
+          max_connections: 100
+          max_pending_requests: 100
+          max_requests: 1000
+    outlier_detection:
+      consecutive_5xx: 5
+      interval: 5s
+      base_ejection_time: 30s
+      max_ejection_percent: 100
+    health_checks:
+      - timeout: 1s
+        interval: 3s
+        unhealthy_threshold: 2
+        healthy_threshold: 1
+        http_health_check: { path: "/" }
+    load_assignment:
+      cluster_name: backend_v1
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address: { address: backend-v1, port_value: 8080 }
+
+  - "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: backend_v2
+    connect_timeout: 1s
+    type: STRICT_DNS
+    circuit_breakers:
+      thresholds:
+        - priority: DEFAULT
+          max_connections: 100
+          max_pending_requests: 100
+          max_requests: 1000
+    outlier_detection:
+      consecutive_5xx: 5
+      interval: 5s
+      base_ejection_time: 30s
+      max_ejection_percent: 100
+    health_checks:
+      - timeout: 1s
+        interval: 3s
+        unhealthy_threshold: 2
+        healthy_threshold: 1
+        http_health_check: { path: "/" }
+    load_assignment:
+      cluster_name: backend_v2
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address: { address: backend-v2, port_value: 8080 }
+

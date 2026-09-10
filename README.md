@@ -1,6 +1,6 @@
 # Envoy Use-Case Lab
 
-Repository นี้มีสองส่วน: POC เดิมแบบ `Nginx → Envoy → APP-1/APP-2` ที่ root และชุด lab แยกตาม use case จำนวน 10 ตัว แต่ละ lab มี topology, config, คู่มือภาษาไทย และ smoke test ของตัวเอง
+Repository นี้มีสองส่วน: POC เดิมแบบ `Nginx → Envoy → APP-1/APP-2` ที่ root และชุด lab แยกตาม use case จำนวน 12 ตัว แต่ละ lab มี topology, config, คู่มือภาษาไทย และ smoke test ของตัวเอง
 
 > Lab ทุกตัวใช้ host ports `8080` และ `9901` เหมือนกัน จึงต้องรันทีละตัวและปิดตัวเดิมด้วย `docker compose down -v` ก่อนเริ่มตัวถัดไป Envoy Admin เปิดไว้เพื่อการเรียนรู้เฉพาะเครื่อง local เท่านั้น
 
@@ -29,6 +29,8 @@ Repository นี้มีสองส่วน: POC เดิมแบบ `Ngin
 | 08 | [Observability](use-cases/08-observability/) | JSON logs, Prometheus metrics และ Jaeger traces | กลาง |
 | 09 | [JWT + RBAC](use-cases/09-jwt-rbac/) | แยก authentication 401 จาก authorization 403 | สูง |
 | 10 | [Dynamic xDS](use-cases/10-dynamic-xds/) | เปลี่ยน RDS โดยไม่ restart และ reject config ผิด | สูง |
+| 11 | [Blue/Green Deployment UI](use-cases/11-blue-green-deployment-ui/) | Promote/Rollback ผ่าน Nginx และ Release Console | สูง |
+| 12 | [Production Blue/Green Stack](use-cases/12-production-blue-green-stack/) | Release Console พร้อม Prometheus, Grafana, Jaeger และ production safeguards | สูง |
 
 ## วิธีรัน lab
 

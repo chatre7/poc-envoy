@@ -1,0 +1,10 @@
+version_info: "1"
+resources:
+  - "@type": type.googleapis.com/envoy.config.route.v3.RouteConfiguration
+    name: dynamic_route
+    virtual_hosts:
+      - name: backend
+        domains: ["*"]
+        routes:
+          - match: { prefix: "/" }
+            route: { cluster: backend_v1, timeout: 5s }

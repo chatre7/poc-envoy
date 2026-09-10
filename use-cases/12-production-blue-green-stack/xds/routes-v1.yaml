@@ -1,0 +1,16 @@
+version_info: "1"
+resources:
+  - "@type": type.googleapis.com/envoy.config.route.v3.RouteConfiguration
+    name: dynamic_route
+    virtual_hosts:
+      - name: production
+        domains: ["*"]
+        routes:
+          - match: { prefix: "/" }
+            route:
+              cluster: backend_v1
+              timeout: 5s
+              retry_policy:
+                retry_on: "connect-failure,reset,5xx"
+                num_retries: 2
+                per_try_timeout: 1s

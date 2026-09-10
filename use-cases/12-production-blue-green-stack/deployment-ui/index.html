@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Envoy Production Control</title>
+  <link rel="stylesheet" href="styles.css?v=2.1">
+  <script src="app.js?v=2.1" defer></script>
+</head>
+<body data-active="unknown" data-connected="false" data-failover="false">
+  <a class="skip-link" href="#main">ข้ามไปยังส่วนควบคุม</a>
+
+  <header class="site-header">
+    <a class="brand-lockup" href="./" aria-label="Envoy Production Control">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M7 11h13c7 0 13 5 13 12v6"/>
+        <path d="M7 29h13c7 0 13-5 13-12v-6"/>
+        <path d="m28 7 5 4-5 4"/>
+        <path d="m28 25 5 4-5 4"/>
+      </svg>
+      <span><strong>Envoy Production Control</strong><small>Release · Metrics · Traces</small></span>
+    </a>
+
+    <nav class="ops-nav" aria-label="เครื่องมือ Observability">
+      <a href="http://127.0.0.1:3000/d/envoy-production/envoy-production-overview" target="_blank" rel="noopener">Grafana</a>
+      <a href="http://127.0.0.1:9090" target="_blank" rel="noopener">Prometheus</a>
+      <a href="http://127.0.0.1:16686" target="_blank" rel="noopener">Jaeger</a>
+      <a href="http://127.0.0.1:9093" target="_blank" rel="noopener">Alerts</a>
+    </nav>
+
+    <div class="connection" id="connection" aria-live="polite">
+      <span class="connection-dot" aria-hidden="true"></span>
+      <span id="connectionText">กำลังเชื่อมต่อ</span>
+    </div>
+  </header>
+
+  <main id="main" class="page-shell" tabindex="-1">
+    <section class="page-intro" aria-labelledby="pageTitle">
+      <div>
+        <p class="eyebrow">Production deployment surface</p>
+        <h1 id="pageTitle">เปลี่ยน Release โดยเห็นระบบครบทั้งเส้นทาง</h1>
+      </div>
+      <p>ตรวจ candidate, publish Dynamic RDS แบบ atomic และตามผลผ่าน metrics, logs และ traces โดยไม่ restart Envoy</p>
+    </section>
+
+    <div class="error-banner" id="errorBanner" role="alert" hidden>
+      <div><strong>อ่านสถานะ deployment ไม่สำเร็จ</strong><span id="errorMessage">ตรวจสอบ Nginx, controller และ Envoy แล้วลองอีกครั้ง</span></div>
+      <button class="button button-quiet" id="retryButton" type="button">ลองอีกครั้ง</button>
+    </div>
+
+    <section class="switchboard" aria-labelledby="routeHeading">
+      <div class="board-heading">
+        <div><span class="section-number">01</span><h2 id="routeHeading">Production traffic</h2><p>Envoy ส่ง request ใหม่ทั้งหมดไปยัง release ที่ active</p></div>
+        <button class="refresh-button" id="refreshButton" type="button" aria-label="รีเฟรชสถานะ deployment">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg>
+          <span>รีเฟรช</span>
+        </button>
+      </div>
+
+      <div class="route-stage">
+        <article class="release release-blue" id="blueRelease" aria-labelledby="blueTitle">
+          <div class="release-topline">
+            <span class="release-letter" aria-hidden="true">B</span>
+            <div><h3 id="blueTitle">Blue</h3><p>backend_v1</p></div>
+            <span class="active-flag" id="blueActive">Standby</span>
+          </div>
+          <dl class="release-facts">
+            <div><dt>Artifact</dt><dd>VERSION-1</dd></div>
+            <div><dt>Health</dt><dd class="health-value" id="blueHealth"><span class="status-dot" aria-hidden="true"></span><span>กำลังตรวจสอบ</span></dd></div>
+            <div><dt>Probe</dt><dd id="blueProbe">—</dd></div>
+          </dl>
+        </article>
+
+        <div class="traffic-rail" aria-label="เส้นทาง traffic ปัจจุบัน">
+          <div class="rail-labels" aria-hidden="true"><span>BLUE</span><strong>100% TRAFFIC</strong><span>GREEN</span></div>
+          <div class="rail-track" aria-hidden="true"><span class="rail-terminal rail-terminal-blue"></span><span class="rail-line"><i></i></span><span class="rail-terminal rail-terminal-green"></span></div>
+          <p class="route-summary" id="routeSummary">กำลังอ่านเส้นทางจาก Envoy</p>
+          <p class="route-revision">RDS revision <strong id="revision">—</strong></p>
+        </div>
+
+        <article class="release release-green" id="greenRelease" aria-labelledby="greenTitle">
+          <div class="release-topline">
+            <span class="release-letter" aria-hidden="true">G</span>
+            <div><h3 id="greenTitle">Green</h3><p>backend_v2</p></div>
+            <span class="active-flag" id="greenActive">Standby</span>
+          </div>
+          <dl class="release-facts">
+            <div><dt>Artifact</dt><dd>VERSION-2</dd></div>
+            <div><dt>Health</dt><dd class="health-value" id="greenHealth"><span class="status-dot" aria-hidden="true"></span><span>กำลังตรวจสอบ</span></dd></div>
+            <div><dt>Probe</dt><dd id="greenProbe">—</dd></div>
+          </dl>
+        </article>
+      </div>
+
+      <div class="control-strip">
+        <div class="control-copy"><span class="control-index" aria-hidden="true">↳</span><div><strong id="actionTitle">รอข้อมูลจาก Envoy</strong><p id="actionHint">ระบบจะเปิด action เมื่อทราบ active route และ candidate พร้อมรับ traffic</p></div></div>
+        <button class="button button-primary" id="switchButton" type="button" disabled>
+          <span id="switchButtonText">กำลังโหลด</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m14 7 5 5-5 5"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="telemetry" aria-labelledby="telemetryHeading">
+      <div class="section-heading"><span class="section-number">02</span><div><h2 id="telemetryHeading">Observability plane</h2><p>เปิดเครื่องมือแต่ละชั้นโดยไม่ออกจาก deployment context</p></div></div>
+      <div class="telemetry-grid">
+        <a class="telemetry-card" href="http://127.0.0.1:3000/d/envoy-production/envoy-production-overview" target="_blank" rel="noopener">
+          <span class="telemetry-code">METRICS / DASHBOARD</span><strong>Grafana</strong><p>Traffic rate, upstream connections และ Envoy memory</p><span class="service-state" id="grafanaStatus" data-ready="false">Checking</span>
+        </a>
+        <a class="telemetry-card" href="http://127.0.0.1:9090" target="_blank" rel="noopener">
+          <span class="telemetry-code">METRICS / QUERY</span><strong>Prometheus</strong><p>ค้นหาและตรวจ raw Envoy time series</p><span class="service-state" id="prometheusStatus" data-ready="false">Checking</span>
+        </a>
+        <a class="telemetry-card" href="http://127.0.0.1:16686" target="_blank" rel="noopener">
+          <span class="telemetry-code">DISTRIBUTED TRACING</span><strong>Jaeger</strong><p>ตาม request จาก Envoy ไปยัง active backend</p><span class="service-state" id="jaegerStatus" data-ready="false">Checking</span>
+        </a>
+        <a class="telemetry-card" href="http://127.0.0.1:9093" target="_blank" rel="noopener">
+          <span class="telemetry-code">ALERTS / LIFECYCLE</span><strong>Alertmanager</strong><p>ติดตาม Pending, Firing และ Resolved พร้อม webhook audit</p><span class="service-state" id="alertmanagerStatus" data-ready="false">Checking</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="system-band" aria-labelledby="systemHeading">
+      <div class="system-intro"><span class="section-number">03</span><h2 id="systemHeading">Release interlocks</h2><p>Controller จะไม่เปลี่ยน traffic จนกว่า route และ candidate ผ่านเงื่อนไข</p></div>
+      <ol class="checks-list">
+        <li id="envoyCheck"><span class="check-marker" aria-hidden="true"></span><div><strong>Envoy control plane</strong><span>กำลังตรวจสอบ config dump</span></div></li>
+        <li id="candidateCheck"><span class="check-marker" aria-hidden="true"></span><div><strong>Candidate release</strong><span>กำลังตรวจสอบ health probe</span></div></li>
+        <li class="is-ready"><span class="check-marker" aria-hidden="true"></span><div><strong>Atomic publication</strong><span>เขียน temporary file แล้ว rename ใน filesystem เดียวกัน</span></div></li>
+        <li id="alertCheck"><span class="check-marker" aria-hidden="true"></span><div><strong>Failover alerts</strong><span>กำลังตรวจสอบ Alertmanager</span></div></li>
+      </ol>
+    </section>
+
+    <footer class="page-footer"><p>Local operator surface · bind ผ่าน <code>127.0.0.1</code> เท่านั้น</p><p>ตรวจล่าสุด <time id="observedAt">—</time></p></footer>
+  </main>
+
+  <dialog class="confirm-dialog" id="confirmDialog" aria-labelledby="dialogTitle" aria-describedby="dialogDescription">
+    <form method="dialog">
+      <div class="dialog-route" aria-hidden="true"><span id="dialogFrom">Blue</span><svg viewBox="0 0 48 20"><path d="M2 10h42M37 3l7 7-7 7"/></svg><span id="dialogTo">Green</span></div>
+      <h2 id="dialogTitle">ยืนยันการเปลี่ยน Traffic</h2>
+      <p id="dialogDescription">Request ใหม่ 100% จะถูกส่งไปยัง Green หลัง Envoy ยอมรับ RDS revision ใหม่</p>
+      <div class="dialog-facts"><span><strong>ไม่มี proxy restart</strong> connection ที่มีอยู่ไม่ถูกตัด</span><span><strong>Rollback แบบ Manual</strong> สลับกลับได้ตราบใดที่ candidate ผ่าน health probe</span></div>
+      <div class="dialog-actions"><button class="button button-quiet" value="cancel">ยกเลิก</button><button class="button button-primary" id="confirmButton" type="button"><span id="confirmButtonText">สลับ Production Traffic ไป Green</span></button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

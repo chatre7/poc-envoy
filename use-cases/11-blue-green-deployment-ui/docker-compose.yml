@@ -1,0 +1,51 @@
+services:
+  nginx:
+    image: nginx:1.27.2-alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports: ["127.0.0.1:8080:80"]
+    depends_on: [envoy, deployment-ui]
+    networks: [lab]
+
+  envoy:
+    image: envoyproxy/envoy:v1.32.13
+    command: ["/usr/local/bin/envoy", "-c", "/etc/envoy/envoy.yaml", "-l", "info"]
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
+      # Writable so the controller and cross-platform smoke test can perform
+      # an atomic rename inside Linux and reliably trigger the file watcher.
+      - ./xds:/etc/envoy/xds
+    expose: ["10000"]
+    ports: ["127.0.0.1:9901:9901"]
+    depends_on: [backend-v1, backend-v2]
+    networks: [lab]
+
+  deployment-ui:
+    image: python:3.12.7-alpine
+    command: ["python", "/app/server.py"]
+    environment:
+      ENVOY_ADMIN_URL: http://envoy:9901
+      XDS_DIR: /etc/envoy/xds
+      BLUE_HEALTH_URL: http://backend-v1:8080/
+      GREEN_HEALTH_URL: http://backend-v2:8080/
+    volumes:
+      - ./deployment-ui:/app:ro
+      - ./xds:/etc/envoy/xds
+    expose: ["8000"]
+    depends_on: [envoy, backend-v1, backend-v2]
+    networks: [lab]
+
+  backend-v1:
+    image: hashicorp/http-echo:1.0
+    command: ["-listen=:8080", "-text=VERSION-1"]
+    expose: ["8080"]
+    networks: [lab]
+
+  backend-v2:
+    image: hashicorp/http-echo:1.0
+    command: ["-listen=:8080", "-text=VERSION-2"]
+    expose: ["8080"]
+    networks: [lab]
+
+networks:
+  lab: { driver: bridge }

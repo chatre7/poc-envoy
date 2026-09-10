@@ -8,10 +8,12 @@
 
 ## สิ่งที่เรียนรู้
 
-- **LDS** กำหนด listener, **RDS** กำหนด route, **CDS** กำหนด cluster, **EDS** กำหนด endpoint และ **SDS** ส่ง secret/TLS certificate
-- Lab นี้ทำ listener เป็น static, clusters เป็น CDS และ routes เป็น RDS
-- filesystem xDS เหมาะกับ lab และการทดลอง ส่วน production มักใช้ streaming gRPC control plane เพื่อส่ง resource, version และ ACK/NACK อย่างเป็นระบบ
-- การเขียนไฟล์ใช้วิธีสร้างไฟล์ชั่วคราวแล้ว rename เพื่อไม่ให้ Envoy อ่านไฟล์ครึ่งหนึ่ง โดย smoke test ทำ rename ภายใน Linux container เพื่อให้ Docker Desktop ส่ง filesystem event เหมือนกันบนทุกระบบ
+- **LDS** ควบคุม listener และ network filter chain
+- Lab นี้ทำ listener เป็น static เพื่อให้เห็นขอบเขต bootstrap ชัดเจน
+- **CDS** โหลด `backend_v1` และ `backend_v2` จาก `xds/clusters.yaml`
+- **RDS** โหลด route ชื่อ `dynamic_route` จาก `xds/routes-current.yaml`
+- filesystem xDS เป็นตัวอย่างสำหรับเรียนรู้ lifecycle ของ update; production มักใช้ xDS control plane ผ่าน gRPC เพื่อ ACK/NACK, versioning และ rollout ที่ควบคุมได้
+- การเขียนไฟล์ต้องใช้ atomic rename ภายใน container เพื่อให้ Envoy รับ filesystem notification อย่างสม่ำเสมอบน Docker Desktop
 
 ## รัน
 

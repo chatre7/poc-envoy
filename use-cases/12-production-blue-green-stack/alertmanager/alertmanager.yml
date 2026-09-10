@@ -1,0 +1,16 @@
+global:
+  resolve_timeout: 30s
+
+route:
+  receiver: release-console
+  group_by: [alertname, slot]
+  group_wait: 1s
+  group_interval: 2s
+  repeat_interval: 1h
+
+receivers:
+  - name: release-console
+    webhook_configs:
+      - url: http://deployment-ui:8000/api/alerts
+        send_resolved: true
+        max_alerts: 20

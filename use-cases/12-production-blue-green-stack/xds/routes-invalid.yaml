@@ -1,0 +1,9 @@
+version_info: "broken"
+resources:
+  - "@type": type.googleapis.com/envoy.config.route.v3.RouteConfiguration
+    name: dynamic_route
+    virtual_hosts:
+      - name: invalid-production
+        domains: ["*"]
+        routes:
+          - match: { prefix: "/" }

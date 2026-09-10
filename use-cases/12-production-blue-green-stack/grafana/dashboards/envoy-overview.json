@@ -1,0 +1,115 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {"title": "Release Console", "type": "link", "url": "http://127.0.0.1:8080/deployment/", "targetBlank": true},
+    {"title": "Alertmanager", "type": "link", "url": "http://127.0.0.1:9093/", "targetBlank": true},
+    {"title": "Jaeger", "type": "link", "url": "http://127.0.0.1:16686/", "targetBlank": true}
+  ],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [{"options": {"0": {"color": "red", "text": "DOWN"}, "1": {"color": "green", "text": "LIVE"}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
+      "gridPos": {"h": 7, "w": 5, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "text": {"titleSize": 14, "valueSize": 28}, "textMode": "auto"},
+      "targets": [{"expr": "envoy_server_live", "refId": "A"}],
+      "title": "Envoy State",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}}, "overrides": []},
+      "gridPos": {"h": 7, "w": 5, "x": 5, "y": 0},
+      "id": 2,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "text": {"titleSize": 14, "valueSize": 28}, "textMode": "name"},
+      "targets": [{"expr": "release_active == 1", "instant": true, "legendFormat": "{{slot}}", "refId": "A"}],
+      "title": "Active Release",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [{"options": {"0": {"color": "green", "text": "HEALTHY"}, "1": {"color": "red", "text": "FAILOVER REQUIRED"}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []},
+      "gridPos": {"h": 7, "w": 7, "x": 10, "y": 0},
+      "id": 3,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "text": {"titleSize": 14, "valueSize": 28}, "textMode": "auto"},
+      "targets": [{"expr": "release_failover_required", "refId": "A"}],
+      "title": "Failover State",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [{"options": {"0": {"color": "red", "text": "NOT READY"}, "1": {"color": "green", "text": "READY"}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
+      "gridPos": {"h": 7, "w": 7, "x": 17, "y": 0},
+      "id": 4,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "text": {"titleSize": 14, "valueSize": 28}, "textMode": "auto"},
+      "targets": [{"expr": "release_standby_ready", "refId": "A"}],
+      "title": "Standby Readiness",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "continuous-GrYlRd"}, "custom": {"fillOpacity": 70, "lineWidth": 0}, "mappings": [{"options": {"0": {"color": "red", "text": "Unhealthy"}, "1": {"color": "green", "text": "Healthy"}}, "type": "value"}], "min": 0, "max": 1}, "overrides": []},
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 7},
+      "id": 5,
+      "options": {"alignValue": "left", "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}, "mergeValues": true, "rowHeight": 0.9, "showValue": "auto", "tooltip": {"mode": "single", "sort": "none"}},
+      "targets": [{"expr": "release_backend_healthy", "legendFormat": "{{slot}}", "refId": "A"}],
+      "title": "Blue / Green Health Timeline",
+      "type": "state-timeline"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 7},
+      "id": 6,
+      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum(rate(envoy_http_downstream_rq_total[1m]))", "legendFormat": "All requests", "refId": "A"}, {"expr": "sum(rate(envoy_http_downstream_rq_xx{envoy_response_code_class=\"5\"}[1m]))", "legendFormat": "5xx", "refId": "B"}],
+      "title": "Request and 5xx Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 10, "x": 0, "y": 14},
+      "id": 7,
+      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum by (envoy_cluster_name) (rate(envoy_cluster_upstream_rq_total{envoy_cluster_name=~\"backend_v1|backend_v2\"}[1m]))", "legendFormat": "{{envoy_cluster_name}}", "refId": "A"}],
+      "title": "Blue / Green Upstream Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []},
+      "gridPos": {"h": 8, "w": 6, "x": 10, "y": 14},
+      "id": 8,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "release_rds_update_rejected_total", "refId": "A"}],
+      "title": "Rejected xDS Updates",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 14},
+      "id": 9,
+      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "release_switch_total", "legendFormat": "{{from_slot}} → {{to_slot}} / {{result}}", "refId": "A"}],
+      "title": "Traffic Switch Outcomes",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["envoy", "production", "blue-green", "failover"],
+  "templating": {"list": []},
+  "time": {"from": "now-15m", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Envoy Production & Failover",
+  "uid": "envoy-production",
+  "version": 2,
+  "weekStart": ""
+}

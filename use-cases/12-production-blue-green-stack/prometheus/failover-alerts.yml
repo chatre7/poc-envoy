@@ -1,0 +1,54 @@
+groups:
+  - name: envoy-failover
+    rules:
+      - alert: ActiveReleaseUnhealthy
+        expr: release_active == 1 and on(slot) release_backend_healthy == 0
+        for: 6s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Active {{ $labels.slot }} release is unhealthy"
+          description: "Production traffic targets {{ $labels.slot }}, but its backend probe is failing. Verify the standby release and perform a guarded rollback."
+
+      - alert: StandbyReleaseUnavailable
+        expr: release_active == 0 and on(slot) release_backend_healthy == 0
+        for: 15s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Standby {{ $labels.slot }} release is unavailable"
+          description: "Rollback readiness is degraded because the standby release probe is failing."
+
+      - alert: EnvoyDown
+        expr: up{job="envoy"} == 0
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Envoy metrics target is down"
+          description: "Prometheus cannot scrape the Envoy Admin metrics endpoint."
+
+      - alert: ReleaseControllerDown
+        expr: up{job="release-controller"} == 0
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Release controller is down"
+          description: "Prometheus cannot scrape the release controller metrics endpoint."
+
+      - alert: RdsUpdateRejected
+        expr: increase(release_rds_update_rejected_total[5m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Envoy rejected an xDS update"
+          description: "At least one CDS or RDS update was rejected in the last five minutes."
+
+      - alert: NoHealthyUpstream
+        expr: increase(envoy_cluster_upstream_cx_none_healthy[1m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Envoy has no healthy upstream"
+          description: "A request could not be routed because its target cluster had no healthy endpoint."
