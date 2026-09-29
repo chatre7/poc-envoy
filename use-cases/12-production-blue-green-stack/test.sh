@@ -36,10 +36,10 @@ wait_webhook_alert() {
 }
 switch_traffic() { curl -fsS -H 'Content-Type: application/json' -d "{\"target\":\"$1\",\"expected_active\":\"$2\"}" http://127.0.0.1:8080/deployment/api/switch >/dev/null; }
 publish_invalid_route() { MSYS_NO_PATHCONV=1 $compose exec -T envoy sh -c "cp /etc/envoy/xds/routes-invalid.yaml /etc/envoy/xds/routes-current.yaml.tmp && mv /etc/envoy/xds/routes-current.yaml.tmp /etc/envoy/xds/routes-current.yaml"; }
-cleanup() { $compose start backend-v1 >/dev/null 2>&1 || true; ./reset.sh >/dev/null 2>&1 || true; $compose down -v >/dev/null 2>&1 || true; }
+cleanup() { $compose start backend-v1 >/dev/null 2>&1 || true; sh ./reset.sh >/dev/null 2>&1 || true; $compose down -v >/dev/null 2>&1 || true; }
 trap cleanup EXIT INT TERM
 
-./reset.sh
+sh ./reset.sh
 cleanup
 $compose up -d
 wait_uri http://127.0.0.1:9901/ready

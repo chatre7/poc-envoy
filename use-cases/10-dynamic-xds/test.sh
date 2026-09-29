@@ -7,9 +7,9 @@ set_route() {
   MSYS_NO_PATHCONV=1 $compose exec -T envoy sh -c "cp /etc/envoy/xds/$1 /etc/envoy/xds/routes-current.yaml.tmp && mv /etc/envoy/xds/routes-current.yaml.tmp /etc/envoy/xds/routes-current.yaml"
 }
 wait_body() { expected=$1; i=0; until [ "$(curl -fsS http://127.0.0.1:8080/ 2>/dev/null || true)" = "$expected" ]; do i=$((i+1)); [ "$i" -lt 30 ] || return 1; sleep 1; done; }
-cleanup() { ./reset.sh >/dev/null 2>&1 || true; $compose down -v >/dev/null 2>&1 || true; }
+cleanup() { sh ./reset.sh >/dev/null 2>&1 || true; $compose down -v >/dev/null 2>&1 || true; }
 trap cleanup EXIT INT TERM
-./reset.sh
+sh ./reset.sh
 cleanup
 $compose up -d
 wait_body VERSION-1

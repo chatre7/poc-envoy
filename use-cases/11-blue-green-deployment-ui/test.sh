@@ -20,9 +20,9 @@ switch_traffic() {
     -d "{\"target\":\"$1\",\"expected_active\":\"$2\"}" \
     http://127.0.0.1:8080/deployment/api/switch >/dev/null
 }
-cleanup() { ./reset.sh >/dev/null 2>&1 || true; $compose down -v >/dev/null 2>&1 || true; }
+cleanup() { sh ./reset.sh >/dev/null 2>&1 || true; $compose down -v >/dev/null 2>&1 || true; }
 trap cleanup EXIT INT TERM
-./reset.sh
+sh ./reset.sh
 cleanup
 $compose up -d
 wait_body VERSION-1

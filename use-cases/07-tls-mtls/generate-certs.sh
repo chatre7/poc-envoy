@@ -17,5 +17,7 @@ openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 1 -subj '/CN=Untrusted L
 openssl req -newkey rsa:2048 -nodes -sha256 -subj '/CN=untrusted-client' -keyout certs/untrusted-client.key -out certs/untrusted-client.csr
 openssl x509 -req -in certs/untrusted-client.csr -CA certs/untrusted-ca.crt -CAkey certs/untrusted-ca.key -CAcreateserial -days 1 -sha256 -extfile certs/client.ext -out certs/untrusted-client.crt
 openssl pkcs12 -export -passout pass: -inkey certs/untrusted-client.key -in certs/untrusted-client.crt -certfile certs/untrusted-ca.crt -out certs/untrusted-client.p12
+# Envoy runs as a non-root user in the container; these throwaway lab keys must be readable through the bind mount.
+chmod 644 certs/*.key
 rm -f certs/*.csr certs/*.ext certs/*.srl
 echo 'Generated local-only certificates in certs/'
