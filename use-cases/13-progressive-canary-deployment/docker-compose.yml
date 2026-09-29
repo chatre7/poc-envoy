@@ -1,0 +1,61 @@
+services:
+  nginx:
+    image: nginx:1.27.2-alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports: ["127.0.0.1:8080:80"]
+    depends_on: [envoy, deployment-ui]
+    networks: [lab]
+
+  envoy:
+    image: envoyproxy/envoy:v1.32.13
+    command: ["/usr/local/bin/envoy", "-c", "/etc/envoy/envoy.yaml", "-l", "info"]
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
+      # Writable so the controller can publish RDS with an atomic rename that
+      # reliably triggers Envoy's file watcher.
+      - ./xds:/etc/envoy/xds
+    expose: ["10000"]
+    ports: ["127.0.0.1:9901:9901"]
+    depends_on: [backend-stable, backend-canary]
+    networks: [lab]
+
+  deployment-ui:
+    image: python:3.12.7-alpine
+    command: ["python", "/app/server.py"]
+    environment:
+      ENVOY_ADMIN_URL: http://envoy:9901
+      XDS_DIR: /etc/envoy/xds
+      STABLE_HEALTH_URL: http://backend-stable:8080/healthz
+      CANARY_HEALTH_URL: http://backend-canary:8080/healthz
+      CANARY_STEPS: "0,10,25,50,100"
+      MAX_ERROR_RATE: "0.05"
+      MIN_SAMPLES: "20"
+      ANALYSIS_INTERVAL_SECONDS: "2"
+    volumes:
+      - ./deployment-ui:/app:ro
+      - ./xds:/etc/envoy/xds
+    expose: ["8000"]
+    depends_on: [envoy, backend-stable, backend-canary]
+    networks: [lab]
+
+  backend-stable:
+    image: python:3.12.7-alpine
+    command: ["python", "/app/backend.py"]
+    environment:
+      VERSION: VERSION-1
+    volumes: ["./backend:/app:ro"]
+    expose: ["8080", "9000"]
+    networks: [lab]
+
+  backend-canary:
+    image: python:3.12.7-alpine
+    command: ["python", "/app/backend.py"]
+    environment:
+      VERSION: VERSION-2
+    volumes: ["./backend:/app:ro"]
+    expose: ["8080", "9000"]
+    networks: [lab]
+
+networks:
+  lab: { driver: bridge }

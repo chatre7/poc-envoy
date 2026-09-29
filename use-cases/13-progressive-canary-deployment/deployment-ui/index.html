@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Envoy Canary Console</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body data-active="unknown">
+  <a class="skip-link" href="#main">ข้ามไปยังส่วนควบคุม</a>
+
+  <header class="site-header">
+    <div class="brand-lockup">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M7 20h10"/>
+        <path d="M17 20c6 0 8-9 16-9"/>
+        <path d="M17 20c6 0 8 9 16 9"/>
+        <path d="m29 7 4 4-4 4"/>
+        <path d="m29 25 4 4-4 4"/>
+      </svg>
+      <div>
+        <h1>Envoy Canary Console</h1>
+        <p>Progressive delivery · Weighted RDS · Auto-rollback</p>
+      </div>
+    </div>
+
+    <div class="connection" id="connection" aria-live="polite">
+      <span class="connection-dot" aria-hidden="true"></span>
+      <span id="connectionText">กำลังเชื่อมต่อ</span>
+    </div>
+  </header>
+
+  <main id="main" class="page-shell" tabindex="-1">
+    <div class="error-banner" id="errorBanner" role="alert" hidden>
+      <div>
+        <strong>อ่านสถานะ rollout ไม่สำเร็จ</strong>
+        <span id="errorMessage">ตรวจสอบ Nginx, controller และ Envoy แล้วลองอีกครั้ง</span>
+      </div>
+      <button class="button button-quiet" id="retryButton" type="button">ลองอีกครั้ง</button>
+    </div>
+
+    <section class="switchboard" aria-labelledby="routeHeading">
+      <div class="board-heading">
+        <div>
+          <h2 id="routeHeading">Canary Rollout</h2>
+          <p>เพิ่ม traffic ไป canary ทีละขั้น · ทุกขั้นต้องผ่าน analysis gate · error rate เกิน policy จะ rollback อัตโนมัติ</p>
+        </div>
+        <button class="refresh-button" id="refreshButton" type="button" aria-label="รีเฟรชสถานะ rollout">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 11a8 8 0 1 0-2.34 5.66"/>
+            <path d="M20 4v7h-7"/>
+          </svg>
+          <span>รีเฟรช</span>
+        </button>
+      </div>
+
+      <div class="route-stage">
+        <article class="release release-blue" aria-labelledby="stableTitle">
+          <div class="release-topline">
+            <span class="release-letter" aria-hidden="true">S</span>
+            <div>
+              <h3 id="stableTitle">Stable</h3>
+              <p>backend_stable · VERSION-1</p>
+            </div>
+            <span class="active-flag" id="stableWeight">—</span>
+          </div>
+          <dl class="release-facts">
+            <div>
+              <dt>Health</dt>
+              <dd class="health-value" id="stableHealth">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span>กำลังตรวจสอบ</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Requests ในขั้นนี้</dt>
+              <dd id="stableRequests">—</dd>
+            </div>
+            <div>
+              <dt>5xx rate</dt>
+              <dd id="stableErrorRate">—</dd>
+            </div>
+          </dl>
+        </article>
+
+        <div class="canary-meter" aria-labelledby="meterHeading">
+          <p class="meter-heading" id="meterHeading">Canary traffic</p>
+          <p class="meter-value"><strong id="weightValue">—</strong><span>%</span></p>
+          <div class="split-bar" aria-hidden="true">
+            <span class="split-stable" id="splitStable"></span>
+            <span class="split-canary" id="splitCanary"></span>
+          </div>
+          <ol class="step-track" id="stepTrack" aria-label="ขั้นของ rollout"></ol>
+          <p class="route-summary" id="routeSummary">กำลังอ่านเส้นทางจาก Envoy</p>
+          <p class="route-revision">RDS revision <strong id="revision">—</strong></p>
+        </div>
+
+        <article class="release release-green" aria-labelledby="canaryTitle">
+          <div class="release-topline">
+            <span class="release-letter" aria-hidden="true">C</span>
+            <div>
+              <h3 id="canaryTitle">Canary</h3>
+              <p>backend_canary · VERSION-2</p>
+            </div>
+            <span class="active-flag" id="canaryWeight">—</span>
+          </div>
+          <dl class="release-facts">
+            <div>
+              <dt>Health</dt>
+              <dd class="health-value" id="canaryHealth">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span>กำลังตรวจสอบ</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Requests ในขั้นนี้</dt>
+              <dd id="canaryRequests">—</dd>
+            </div>
+            <div>
+              <dt>5xx rate</dt>
+              <dd id="canaryErrorRate">—</dd>
+            </div>
+          </dl>
+        </article>
+      </div>
+
+      <div class="control-strip">
+        <div class="control-copy">
+          <span class="control-index" aria-hidden="true">↳</span>
+          <div>
+            <strong id="actionTitle">รอข้อมูลจาก Envoy</strong>
+            <p id="actionHint">ระบบจะเปิด action เมื่อทราบ canary weight และผล analysis</p>
+          </div>
+        </div>
+        <div class="control-actions">
+          <button class="button button-quiet button-danger" id="rollbackButton" type="button" disabled>Rollback to 0%</button>
+          <button class="button button-primary" id="advanceButton" type="button" disabled>
+            <span id="advanceButtonText">กำลังโหลด</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14"/>
+              <path d="m14 7 5 5-5 5"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="system-band" aria-labelledby="systemHeading">
+      <div class="system-intro">
+        <h2 id="systemHeading">Analysis gate</h2>
+        <p id="policyText">Controller อ่าน <code>upstream_rq_completed</code> และ <code>upstream_rq_5xx</code> ของแต่ละ cluster จาก Envoy ทุก 2 วินาที</p>
+      </div>
+      <ol class="checks-list">
+        <li id="envoyCheck">
+          <span class="check-marker" aria-hidden="true"></span>
+          <div><strong>Envoy route</strong><span>กำลังตรวจสอบ config dump</span></div>
+        </li>
+        <li id="healthCheck">
+          <span class="check-marker" aria-hidden="true"></span>
+          <div><strong>Canary health probe</strong><span>กำลังตรวจสอบ</span></div>
+        </li>
+        <li id="samplesCheck">
+          <span class="check-marker" aria-hidden="true"></span>
+          <div><strong>จำนวน samples</strong><span>กำลังตรวจสอบ</span></div>
+        </li>
+        <li id="errorCheck">
+          <span class="check-marker" aria-hidden="true"></span>
+          <div><strong>Canary 5xx rate</strong><span>กำลังตรวจสอบ</span></div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="system-band event-band" aria-labelledby="eventsHeading">
+      <div class="system-intro">
+        <h2 id="eventsHeading">Rollout events</h2>
+        <p>ทุกการเปลี่ยน weight ยืนยันจาก <code>config_dump</code> ก่อนบันทึก รวมถึง rollback อัตโนมัติ</p>
+      </div>
+      <ol class="event-list" id="eventList">
+        <li class="event-empty">ยังไม่มี event</li>
+      </ol>
+    </section>
+
+    <footer class="page-footer">
+      <p>Local operator surface · เปิดผ่าน <code>127.0.0.1</code> เท่านั้น</p>
+      <p>ตรวจล่าสุด <time id="observedAt">—</time></p>
+    </footer>
+  </main>
+
+  <dialog class="confirm-dialog" id="confirmDialog" aria-labelledby="dialogTitle" aria-describedby="dialogDescription">
+    <form method="dialog">
+      <div class="dialog-route" aria-hidden="true">
+        <span id="dialogFrom">0%</span>
+        <svg viewBox="0 0 48 20"><path d="M2 10h42M37 3l7 7-7 7"/></svg>
+        <span id="dialogTo">10%</span>
+      </div>
+      <h2 id="dialogTitle">ยืนยันการเปลี่ยน canary weight</h2>
+      <p id="dialogDescription">Envoy จะเริ่มส่ง request ใหม่ตามสัดส่วนใหม่หลังยอมรับ RDS revision</p>
+      <div class="dialog-facts">
+        <span><strong>ไม่มี proxy restart</strong> connection ที่มีอยู่ไม่ถูกตัด</span>
+        <span><strong>Analysis เริ่มใหม่ทุกขั้น</strong> counter ถูก snapshot เมื่อ Envoy ยอมรับ weight ใหม่</span>
+      </div>
+      <div class="dialog-actions">
+        <button class="button button-quiet" value="cancel">ยกเลิก</button>
+        <button class="button button-primary" id="confirmButton" type="button">
+          <span id="confirmButtonText">ยืนยัน</span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

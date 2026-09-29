@@ -14,8 +14,8 @@ use_cases="$root/use-cases"
 labs=$(find "$use_cases" -mindepth 1 -maxdepth 1 -type d -name '[0-9][0-9]-*' | sort)
 count=$(printf '%s\n' "$labs" | sed '/^$/d' | wc -l | tr -d ' ')
 
-if [ "$count" -ne 12 ]; then
-  echo "expected 12 labs, found $count" >&2
+if [ "$count" -ne 13 ]; then
+  echo "expected 13 labs, found $count" >&2
   exit 1
 fi
 
