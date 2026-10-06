@@ -15,6 +15,10 @@ Repository นี้มีสองส่วน: POC เดิมแบบ `Ngin
 
 ชุดตัวอย่างใหม่ pin Envoy ที่ `envoyproxy/envoy:v1.32.13`; image อื่น ๆ ระบุ version ชัดเจนใน Compose ของแต่ละ lab
 
+### ติด Docker Hub rate limit (`429 Too Many Requests`)
+
+Docker Hub จำกัดการ pull แบบไม่ login ต่อ IP รัน `sh ./scripts/prefetch-images.sh` (หรือ `pwsh -NoProfile -File ./scripts/prefetch-images.ps1`) ก่อนเริ่ม lab สคริปต์จะข้าม image ที่มีอยู่แล้ว pull ที่เหลือ และถ้าติด limit จะ fallback ไป `mirror.gcr.io` แล้ว tag กลับเป็นชื่อเดิมที่ Compose ใช้ เปลี่ยน mirror ได้ด้วย `MIRROR=<host>` หรือใช้ `docker login` เพื่อเพิ่ม quota
+
 ## เส้นทางการเรียนรู้
 
 | ลำดับ | Use case | สิ่งที่พิสูจน์ | ระดับ |
