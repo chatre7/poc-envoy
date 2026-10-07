@@ -36,10 +36,10 @@ wait_webhook_alert() {
 }
 switch_traffic() { curl -fsS -H 'Content-Type: application/json' -d "{\"target\":\"$1\",\"expected_active\":\"$2\"}" http://127.0.0.1:8080/deployment/api/switch >/dev/null; }
 publish_invalid_route() { MSYS_NO_PATHCONV=1 $compose exec -T envoy sh -c "cp /etc/envoy/xds/routes-invalid.yaml /etc/envoy/xds/routes-current.yaml.tmp && mv /etc/envoy/xds/routes-current.yaml.tmp /etc/envoy/xds/routes-current.yaml"; }
-cleanup() { $compose start backend-v1 >/dev/null 2>&1 || true; ./reset.sh >/dev/null 2>&1 || true; $compose down -v >/dev/null 2>&1 || true; }
+cleanup() { $compose start backend-v1 >/dev/null 2>&1 || true; sh ./reset.sh >/dev/null 2>&1 || true; $compose down -v >/dev/null 2>&1 || true; }
 trap cleanup EXIT INT TERM
 
-./reset.sh
+sh ./reset.sh
 cleanup
 $compose up -d
 wait_uri http://127.0.0.1:9901/ready
@@ -65,9 +65,9 @@ before=$(docker inspect --format '{{.Id}}' "$container")
 id=11111111-1111-4111-8111-111111111111
 traced_id_pattern='11111111-1111-[0-9a-f]111-8111-111111111111'
 curl -fsS -H "x-request-id: $id" -H 'x-envoy-force-trace: true' http://127.0.0.1:8080/ >/dev/null
-sleep 2
-logs=$($compose logs --no-color envoy)
-printf '%s' "$logs" | grep -E "$traced_id_pattern" | grep -q '"upstream_cluster"'
+# Envoy flushes stdout access logs asynchronously, so poll instead of a fixed sleep.
+i=0
+until $compose logs --no-color envoy | grep -E "$traced_id_pattern" | grep -q '"upstream_cluster"'; do i=$((i+1)); [ "$i" -lt 20 ] || exit 1; sleep 1; done
 i=0
 until curl -fsS 'http://127.0.0.1:9090/api/v1/query?query=release_active' | grep -Eq '"result":\[\{'; do i=$((i+1)); [ "$i" -lt 30 ] || exit 1; sleep 1; done
 curl -fsS 'http://127.0.0.1:3000/api/search?query=Failover' | grep -q '"uid":"envoy-production"'

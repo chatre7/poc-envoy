@@ -1,0 +1,22 @@
+version_info: "1"
+resources:
+  - "@type": type.googleapis.com/envoy.config.route.v3.RouteConfiguration
+    name: dynamic_route
+    virtual_hosts:
+      - name: backend
+        domains: ["*"]
+        routes:
+          # Deterministic override for testers; must stay before the weighted catch-all.
+          - match:
+              prefix: "/"
+              headers:
+                - name: x-canary
+                  string_match: { exact: always }
+            route: { cluster: backend_canary, timeout: 5s }
+          - match: { prefix: "/" }
+            route:
+              timeout: 5s
+              weighted_clusters:
+                clusters:
+                  - { name: backend_stable, weight: 100 }
+                  - { name: backend_canary, weight: 0 }

@@ -15,7 +15,7 @@ tls_request() {
   fi
 }
 trap cleanup EXIT INT TERM
-./generate-certs.sh
+sh ./generate-certs.sh
 cleanup
 $compose up -d
 i=0

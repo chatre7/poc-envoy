@@ -1,6 +1,6 @@
 # Envoy Use-Case Lab
 
-Repository นี้มีสองส่วน: POC เดิมแบบ `Nginx → Envoy → APP-1/APP-2` ที่ root และชุด lab แยกตาม use case จำนวน 12 ตัว แต่ละ lab มี topology, config, คู่มือภาษาไทย และ smoke test ของตัวเอง
+Repository นี้มีสองส่วน: POC เดิมแบบ `Nginx → Envoy → APP-1/APP-2` ที่ root และชุด lab แยกตาม use case จำนวน 13 ตัว แต่ละ lab มี topology, config, คู่มือภาษาไทย และ smoke test ของตัวเอง
 
 > Lab ทุกตัวใช้ host ports `8080` และ `9901` เหมือนกัน จึงต้องรันทีละตัวและปิดตัวเดิมด้วย `docker compose down -v` ก่อนเริ่มตัวถัดไป Envoy Admin เปิดไว้เพื่อการเรียนรู้เฉพาะเครื่อง local เท่านั้น
 
@@ -14,6 +14,10 @@ Repository นี้มีสองส่วน: POC เดิมแบบ `Ngin
 | OpenSSL | สร้าง certificate และทดสอบ lab 07 |
 
 ชุดตัวอย่างใหม่ pin Envoy ที่ `envoyproxy/envoy:v1.32.13`; image อื่น ๆ ระบุ version ชัดเจนใน Compose ของแต่ละ lab
+
+### ติด Docker Hub rate limit (`429 Too Many Requests`)
+
+Docker Hub จำกัดการ pull แบบไม่ login ต่อ IP รัน `sh ./scripts/prefetch-images.sh` (หรือ `pwsh -NoProfile -File ./scripts/prefetch-images.ps1`) ก่อนเริ่ม lab สคริปต์จะข้าม image ที่มีอยู่แล้ว pull ที่เหลือ และถ้าติด limit จะ fallback ไป `mirror.gcr.io` แล้ว tag กลับเป็นชื่อเดิมที่ Compose ใช้ เปลี่ยน mirror ได้ด้วย `MIRROR=<host>` หรือใช้ `docker login` เพื่อเพิ่ม quota
 
 ## เส้นทางการเรียนรู้
 
@@ -31,6 +35,7 @@ Repository นี้มีสองส่วน: POC เดิมแบบ `Ngin
 | 10 | [Dynamic xDS](use-cases/10-dynamic-xds/) | เปลี่ยน RDS โดยไม่ restart และ reject config ผิด | สูง |
 | 11 | [Blue/Green Deployment UI](use-cases/11-blue-green-deployment-ui/) | Promote/Rollback ผ่าน Nginx และ Release Console | สูง |
 | 12 | [Production Blue/Green Stack](use-cases/12-production-blue-green-stack/) | Failover detection, Prometheus alerts, Alertmanager lifecycle, Grafana และ guarded traffic switch | สูง |
+| 13 | [Progressive Canary Deployment](use-cases/13-progressive-canary-deployment/) | ขยับ canary 0→10→25→50→100% ผ่าน RDS, analysis gate จาก Envoy stats และ auto-rollback เมื่อ 5xx เกิน policy | สูง |
 
 ## วิธีรัน lab
 
@@ -113,6 +118,19 @@ pwsh -NoProfile -File ./test.ps1
 ```
 
 ทุก port bind ที่ `127.0.0.1`; webhook receiver ใช้ได้เฉพาะ Compose network และ public path `/deployment/api/alerts` ถูก Nginx ปิดไว้ รายละเอียด metrics และ alert ทั้งหมดอยู่ใน [คู่มือ Lab 12](use-cases/12-production-blue-green-stack/)
+
+## Lab 13: Progressive Canary Deployment
+
+ต่อยอด lab 06 (weight คงที่) เป็น rollout ทีละขั้นผ่าน Canary Console:
+
+```sh
+cd use-cases/13-progressive-canary-deployment
+sh ./reset.sh
+docker compose up -d
+# เปิด http://127.0.0.1:8080/deployment/
+```
+
+Controller ขยับ `weighted_clusters` ผ่าน Dynamic RDS โดยไม่ restart Envoy, ยืนยันทุก revision จาก `config_dump`, คำนวณ canary 5xx rate จาก `/stats` ในแต่ละขั้น และ rollback กลับ 0% อัตโนมัติเมื่อเกิน 5% รายละเอียดใน [คู่มือ Lab 13](use-cases/13-progressive-canary-deployment/)
 
 ## POC เดิม: Nginx → Envoy
 

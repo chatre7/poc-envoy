@@ -1,0 +1,24 @@
+version_info: "1"
+resources:
+  - "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: backend_stable
+    connect_timeout: 1s
+    type: STRICT_DNS
+    load_assignment:
+      cluster_name: backend_stable
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address: { address: backend-stable, port_value: 8080 }
+  - "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: backend_canary
+    connect_timeout: 1s
+    type: STRICT_DNS
+    load_assignment:
+      cluster_name: backend_canary
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address: { address: backend-canary, port_value: 8080 }

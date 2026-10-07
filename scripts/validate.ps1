@@ -11,8 +11,8 @@ $labs = if (Test-Path -LiteralPath $useCases) {
     @()
 }
 
-if ($labs.Count -ne 12) {
-    throw "expected 12 labs, found $($labs.Count)"
+if ($labs.Count -ne 13) {
+    throw "expected 13 labs, found $($labs.Count)"
 }
 
 $failures = [System.Collections.Generic.List[string]]::new()
